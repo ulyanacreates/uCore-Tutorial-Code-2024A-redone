@@ -279,10 +279,10 @@
 #define SYS_kexec_file_load 294
 /*
 * LAB1: you may need to define SYS_task_info here
+// STEP1: define the SYS_task_info syscall number & define the max syscall number
 */
 #define SYS_task_info 410
 #define MAX_SYSCALL_NUM 500
-
 #define SYS_pidfd_send_signal 424
 #define SYS_io_uring_setup 425
 #define SYS_io_uring_enter 426
