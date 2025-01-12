@@ -34,6 +34,8 @@ void proc_init(void)
 		/*
 		* LAB1: you may need to initialize your new fields of proc here
 		*/
+		// STEP 3: initialize the new fields of syscall_times, but hold back on start time yet!
+		memset(p->syscall_times, 0, MAX_SYSCALL_NUM);
 	}
 	idle.kstack = (uint64)boot_stack_top;
 	idle.pid = 0;
