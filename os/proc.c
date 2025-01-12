@@ -2,6 +2,7 @@
 #include "defs.h"
 #include "loader.h"
 #include "trap.h"
+#include "timer.h"
 #include "vm.h"
 #include "queue.h"
 
@@ -24,6 +25,11 @@ struct proc *curr_proc()
 	return current_proc;
 }
 
+// STEP6: implement the cmp function to compare the priority of two processes & send it in proc_init
+int cmp_proc(int i, int j) {
+	return pool[i].stride > pool[j].stride;
+}
+
 // initialize the proc table at boot time.
 void proc_init()
 {
@@ -36,7 +42,7 @@ void proc_init()
 	idle.kstack = (uint64)boot_stack_top;
 	idle.pid = IDLE_PID;
 	current_proc = &idle;
-	init_queue(&task_queue);
+	init_queue(&task_queue, cmp_proc);
 }
 
 int allocpid()
@@ -91,6 +97,9 @@ found:
 	memset((void *)p->trapframe, 0, TRAP_PAGE_SIZE);
 	p->context.ra = (uint64)usertrapret;
 	p->context.sp = p->kstack + KSTACK_SIZE;
+	// STEP3: init priority and stride
+	p->priority = INIT_PRIOR;
+	p->stride = 0;
 	return p;
 }
 
@@ -123,6 +132,8 @@ void scheduler()
 		tracef("swtich to proc %d", p - pool);
 		p->state = RUNNING;
 		current_proc = p;
+		// STEP4: update stride
+		p->stride += BIG_STRIDE/p->priority; 
 		swtch(&idle.context, &p->context);
 	}
 }
@@ -200,6 +211,22 @@ int exec(char *name)
 	p->max_page = 0;
 	loader(id, p);
 	return 0;
+}
+
+// STEP2: implement spawn aka creating the process
+int spawn(char *name) {
+	int id = get_id_by_name(name);
+	if (id < 0)
+		return -1;
+	struct proc *np;
+	struct proc *p = curr_proc();
+	if ((np = allocproc()) == 0) {
+		panic("allocproc\n");
+	}
+	loader(id, np);
+	np->parent = p;
+	add_task(np);
+	return np->pid;
 }
 
 int wait(int pid, int *code)

@@ -4,11 +4,16 @@
 #include "riscv.h"
 #include "types.h"
 #include "queue.h"
+#include "syscall_ids.h"
 
 #define NPROC (512)
 #define FD_BUFFER_SIZE (16)
+#define BIG_STRIDE 65536
+#define INIT_PRIOR 16
 
 struct file;
+
+int spawn(char *name);
 
 // Saved registers for kernel context switches.
 struct context {
@@ -47,9 +52,30 @@ struct proc {
 	struct file *files[FD_BUFFER_SIZE];
 	uint64 program_brk;
 	uint64 heap_bottom;
+	unsigned int syscall_times[MAX_SYSCALL_NUM];
+	uint64 start_time;
+	// STEP3: add priority and stride to the proc struct for the stride algo
+	uint64 priority;
+	uint64 stride; 
 };
 
 int cpuid();
+/*
+* LAB1: you may need to define struct for TaskInfo here
+*/
+typedef enum {
+    UnInit,
+    Ready,
+    Running,
+    Exited,
+} TaskStatus;
+
+typedef struct {
+    TaskStatus status;
+    unsigned int syscall_times[MAX_SYSCALL_NUM];
+    int time;
+} TaskInfo;
+
 struct proc *curr_proc();
 void exit(int);
 void proc_init();

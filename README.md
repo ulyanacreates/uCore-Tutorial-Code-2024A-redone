@@ -15,6 +15,16 @@ Course project for THU-OS.
 在本地开发并测试时，需要拉取 uCore-Tutorial-Test-2022A 到 `user` 文件夹。你可以根据网络情况和个人偏好选择下列一项执行：
 
 ```bash
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+# 清华 git 使用 https
+git clone https://git.tsinghua.edu.cn/os-lab/2024A/public/ucore-tutorial-test-2024A.git user
+# 清华 git 使用 ssh
+git clone git@git.tsinghua.edu.cn:os-lab/2024A/public/ucore-tutorial-test-2024A.git user
+>>>>>>> ch3
+>>>>>>> ch4
 # GitHub 使用 https
 git clone https://github.com/LearningOS/uCore-Tutorial-Test-2024A.git user
 # GitHub 使用 ssh

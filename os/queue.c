@@ -1,10 +1,12 @@
 #include "queue.h"
 #include "defs.h"
 
-void init_queue(struct queue *q)
+// STEP6: add a cmp function to compare the priority of two processes
+void init_queue(struct queue *q, int (*cmp)(int, int))
 {
 	q->front = q->tail = 0;
 	q->empty = 1;
+	q->cmp = cmp;
 }
 
 void push_queue(struct queue *q, int value)
@@ -17,11 +19,19 @@ void push_queue(struct queue *q, int value)
 	q->tail = (q->tail + 1) % NPROC;
 }
 
+// STEP7: implement the pop_queue function to pop the process with the highest priority
 int pop_queue(struct queue *q)
-{
-	if (q->empty)
+{                                               
+	if (q->empty) 
 		return -1;
-	int value = q->data[q->front];
+	int idx = q->front; 
+	for (int i = (idx + 1) % NPROC; i != q->tail; i = (i + 1) % NPROC) {
+		if (q->cmp(q->data[idx], q->data[i])) {
+			idx = i;
+		}
+	}
+	int value = q->data[idx];
+	q->data[idx] = q->data[q->front];	
 	q->front = (q->front + 1) % NPROC;
 	if (q->front == q->tail)
 		q->empty = 1;
