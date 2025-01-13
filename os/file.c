@@ -88,7 +88,8 @@ static struct inode *create(char *path, short type)
 	iupdate(ip);
 	if (dirlink(dp, path, ip->inum) < 0)
 		panic("create: dirlink");
-
+	// STEP2: init nlink same as nfs
+	ip->nlink = 1;
 	iput(dp);
 	return ip;
 }
@@ -140,6 +141,7 @@ uint64 inodewrite(struct file *f, uint64 va, uint64 len)
 {
 	int r;
 	ivalid(f->ip);
+	debugf("read the node from the disk, performing writei");
 	if ((r = writei(f->ip, 1, va, f->off, len)) > 0)
 		f->off += r;
 	return r;
@@ -153,4 +155,61 @@ uint64 inoderead(struct file *f, uint64 va, uint64 len)
 	if ((r = readi(f->ip, 1, va, f->off, len)) > 0)
 		f->off += r;
 	return r;
+}
+
+// STEP4: implement sys_linkat
+int linkat(int olddirfd, char* oldpath, int newdirfd, char* newpath, unsigned int flags) {
+	// check err: same path 
+	if (!strncmp(oldpath, newpath, DIRSIZ)) return -1;
+	struct inode *oldip, *dp;
+	dp = root_dir();
+	// check err: old file doesn't exist
+	if (!(oldip = dirlookup(dp, oldpath, 0))) {
+		iput(oldip);
+		iput(dp);
+		return -1;
+	}
+	ivalid(oldip);
+	// check err: failed to link
+	if (dirlink(dp, newpath, oldip->inum)) {
+		iput(oldip);
+		iput(dp);
+		return -1;
+	}
+	oldip->nlink += 1;
+	return 0;
+}
+
+// STEP5: implement sys_unlinkat
+int unlinkat(int dirfd, char* path, unsigned int flags) {
+	// unlink one of the docs from another 
+	struct inode *ip, *dp;
+	dp = root_dir(); 
+	// check err: the path of the file doesn't exist
+	if (!(ip = dirlookup(dp, path, 0))) {
+		return -1;
+	}
+	ivalid(ip);
+	if (dirunlink(dp, path)) {
+		iput(ip);
+		return -1;
+	}
+	--ip->nlink;
+	iupdate(ip);
+	iput(ip);
+	return 0;
+}
+
+// STEP6: implement fstat
+int fstat(int fd, struct Stat* st) {
+	struct proc *p = curr_proc();
+	if (fd < 0 || fd >= sizeof(p->files)/sizeof(p->files[0])) return -1;
+	struct file *f = p->files[fd];
+	if (f == NULL || f->ref == 0 || f->type == FD_NONE) return -1;
+	st->dev = f->ip->dev;
+	st->ino = f->ip->inum;
+	st->mode = (f->ip->type == T_FILE) ? FILE :
+           (f->ip->type == T_DIR)  ? DIR : 0;
+	st->nlink = f->ip->nlink;
+	return 0;
 }

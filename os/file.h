@@ -18,6 +18,8 @@ struct inode {
 	uint size;
 	uint addrs[NDIRECT + 1];
 	// LAB4: You may need to add link count here
+	// STEP2: add all the necessary fields to the inode for fs
+	short nlink;
 };
 
 // Defines a file in memory that provides information about the current use of the file and the corresponding inode location
@@ -29,6 +31,19 @@ struct file {
 	struct inode *ip; // FD_INODE
 	uint off;
 };
+
+// STEP6: define all the necessary fields for Stat structure
+struct Stat {
+   uint64 dev;     // 文件所在磁盘驱动号，该实现写死为 0 即可。
+   uint64 ino;     // inode 文件所在 inode 编号
+   uint32 mode;    // 文件类型
+   uint32 nlink;   // 硬链接数量，初始为1
+   uint64 pad[7];  // 无需考虑，为了兼容性设计
+};
+
+// 文件类型只需要考虑:
+#define DIR 0x040000              // directory
+#define FILE 0x100000             // ordinary regular file
 
 //A few specific fd
 enum {
@@ -46,5 +61,8 @@ uint64 inodewrite(struct file *, uint64, uint64);
 uint64 inoderead(struct file *, uint64, uint64);
 struct file *stdio_init(int);
 int show_all_files();
+int linkat(int olddirfd, char* oldpath, int newdirfd, char* newpath, unsigned int flags);
+int unlinkat(int dirfd, char* path, unsigned int flags);
+int fstat(int fd, struct Stat* st);
 
 #endif // FILE_H

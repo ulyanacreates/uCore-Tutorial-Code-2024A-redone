@@ -13,7 +13,7 @@
 
 struct file;
 
-int spawn(char *name);
+int spawn(char *name, char **argv);
 
 // Saved registers for kernel context switches.
 struct context {
@@ -55,7 +55,6 @@ struct proc {
 	uint64 heap_bottom;
 	unsigned int syscall_times[MAX_SYSCALL_NUM];
 	uint64 start_time;
-	// STEP3: add priority and stride to the proc struct for the stride algo
 	uint64 priority;
 	uint64 stride; 
 };

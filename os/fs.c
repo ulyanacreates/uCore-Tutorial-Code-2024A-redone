@@ -137,6 +137,8 @@ void iupdate(struct inode *ip)
 	dip->type = ip->type;
 	dip->size = ip->size;
 	// LAB4: you may need to update link count here
+	// STEP2: update link count in dinode
+	dip->nlink = ip->nlink;
 	memmove(dip->addrs, ip->addrs, sizeof(ip->addrs));
 	bwrite(bp);
 	brelse(bp);
@@ -190,6 +192,8 @@ void ivalid(struct inode *ip)
 		ip->type = dip->type;
 		ip->size = dip->size;
 		// LAB4: You may need to get lint count here
+		// STEP2: get link count from dinode
+		ip->nlink = dip->nlink;
 		memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
 		brelse(bp);
 		ip->valid = 1;
@@ -208,7 +212,8 @@ void ivalid(struct inode *ip)
 void iput(struct inode *ip)
 {
 	// LAB4: Unmark the condition and change link count variable name (nlink) if needed
-	if (ip->ref == 1 && ip->valid && 0 /*&& ip->nlink == 0*/) {
+	// STEP2: change the condition to delete the inode when reference count is 0
+	if (ip->ref == 1 && ip->valid && ip->nlink == 0) { // now also delete when reference count is 0
 		// inode has no links and no other references: truncate and free.
 		itrunc(ip);
 		ip->type = 0;
@@ -429,6 +434,28 @@ int dirlink(struct inode *dp, char *name, uint inum)
 }
 
 // LAB4: You may want to add dirunlink here
+// STEP5: implement sys_unlinkat => also need to implement dirunlink to make the whole thing work
+int dirunlink(struct inode *dp, char *name) {
+	debugf("dirunlink");
+	int off;
+	struct dirent de;
+	struct inode *ip;
+	if ((ip = dirlookup(dp, name, 0)) == 0) {
+		return -1;
+	}
+	iput(ip);
+	for (off = 0; off < dp->size; off += sizeof(de)) {
+		if (readi(dp, 0, (uint64)&de, off, sizeof(de)) != sizeof(de))
+			panic("dirlink read");
+		if (de.inum != 0 && !strncmp(name, de.name, DIRSIZ)) {
+			de.inum = 0;
+			if (writei(dp, 0, (uint64)&de, off, sizeof(de)) != sizeof(de)) 
+				panic("dirlink");
+			return 0;
+		}
+	}
+	return -1;
+}
 
 //Return the inode of the root directory
 struct inode *root_dir()

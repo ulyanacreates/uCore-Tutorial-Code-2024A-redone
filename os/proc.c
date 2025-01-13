@@ -30,7 +30,7 @@ struct proc *curr_proc()
 	return current_proc;
 }
 
-// STEP6: implement the cmp function to compare the priority of two processes & send it in proc_init
+
 int cmp_proc(int i, int j) {
 	return pool[i].stride > pool[j].stride;
 }
@@ -104,7 +104,6 @@ found:
 	memset((void *)p->files, 0, sizeof(struct file *) * FD_BUFFER_SIZE);
 	p->context.ra = (uint64)usertrapret;
 	p->context.sp = p->kstack + KSTACK_SIZE;
-	// STEP3: init priority and stride
 	p->priority = INIT_PRIOR;
 	p->stride = 0;
 	return p;
@@ -150,7 +149,6 @@ void scheduler()
 		tracef("swtich to proc %d", p - pool);
 		p->state = RUNNING;
 		current_proc = p;
-		// STEP4: update stride
 		p->stride += BIG_STRIDE/p->priority; 
 		swtch(&idle.context, &p->context);
 	}
@@ -284,19 +282,23 @@ int exec(char *path, char **argv)
 	return push_argv(p, argv);
 }
 
-// STEP2: implement spawn aka creating the process
-int spawn(char *name) {
-	int id = get_id_by_name(name);
-	if (id < 0)
+// STEP1: upgrade the spawning function to fit the file system: the process is going to be spawned from a doc instead of num
+int spawn(char *path, char **argv) {
+	struct inode *ip;
+	if ((ip = namei(path)) == 0) {
+		errorf("invalid file name %s\n", path);
 		return -1;
+	}
 	struct proc *np;
-	struct proc *p = curr_proc();
 	if ((np = allocproc()) == 0) {
 		panic("allocproc\n");
 	}
-	loader(id, np);
-	np->parent = p;
+	bin_loader(ip, np);
+	np->parent = curr_proc();
+	init_stdio(np);
 	add_task(np);
+	iput(ip);
+	push_argv(np, argv);
 	return np->pid;
 }
 

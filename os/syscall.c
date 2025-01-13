@@ -150,20 +150,31 @@ uint64 sys_wait(int pid, uint64 va)
 	return wait(pid, code);
 }
 
-uint64 sys_spawn(uint64 va)
+uint64 sys_spawn(uint64 va, uint64 uargv)
 {
 	// TODO: your job is to complete the sys call
-	// STEP2: implement spawn syscall aka creating the process
+	// STEP1: upgrade the spawning function to fit the file system: the process is going to be spawned from a doc instead of num
 	struct proc *p = curr_proc();
 	char name[200];
 	copyinstr(p->pagetable, name, va, 200);
+	// need to have the parameters for the process -> copy the exec
+	uint64 arg;
+	static char strpool[MAX_ARG_NUM][MAX_STR_LEN];
+	char *argv[MAX_ARG_NUM];
+	int i;
+	for (i = 0; uargv && (arg = fetchaddr(p->pagetable, uargv));
+	     uargv += sizeof(char *), i++) {
+		copyinstr(p->pagetable, (char *)strpool[i], arg, MAX_STR_LEN);
+		argv[i] = (char *)strpool[i];
+	}
+	argv[i] = NULL;
 	debugf("sys_spawn %s\n", name);
-	return spawn(name);
+	return spawn(name, (char**)argv);
 }
+
 
 uint64 sys_set_priority(long long prio){
     // TODO: your job is to complete the sys call
-	// STEP5: implement set_priority syscall
 	if (prio < 2 || prio > __LONG_LONG_MAX__) return -1; 
     struct proc *p = curr_proc();
 	p->priority = prio;
@@ -174,6 +185,8 @@ uint64 sys_openat(uint64 va, uint64 omode, uint64 _flags)
 {
 	struct proc *p = curr_proc();
 	char path[200];
+	// STEP3: set path to 0 at start
+	memset(path, 0, sizeof(path)); // otherwise random symbols in paths less than 200
 	copyinstr(p->pagetable, path, va, 200);
 	return fileopen(path, omode);
 }
@@ -193,23 +206,42 @@ uint64 sys_close(int fd)
 	return 0;
 }
 
+// STEP6: implement sys_fstat
 int sys_fstat(int fd, uint64 stat)
 {
 	//TODO: your job is to complete the syscall
-	return -1;
+	struct Stat st;
+	struct proc *p = curr_proc();
+	if (fstat(fd, &st) == -1) return -1;
+	copyout(p->pagetable, stat, (char *)&st, sizeof(struct Stat));
+	return 0;
 }
 
+// STEP4: implement sys_linkat
 int sys_linkat(int olddirfd, uint64 oldpath, int newdirfd, uint64 newpath,
 	       uint64 flags)
 {
 	//TODO: your job is to complete the syscall
-	return -1;
+	// create a new hard link 
+	char oldpathstr[DIRSIZ];
+	char newpathstr[DIRSIZ];
+	memset((void *)oldpathstr, 0, sizeof(oldpathstr));
+	memset((void *)newpathstr, 0, sizeof(newpathstr));
+	struct proc *p = curr_proc();
+	copyinstr(p->pagetable, oldpathstr, oldpath, DIRSIZ);
+	copyinstr(p->pagetable, newpathstr, newpath, DIRSIZ);
+	return linkat(olddirfd, oldpathstr, newdirfd, newpathstr, flags);
 }
 
+// STEP5: implement sys_unlinkat
 int sys_unlinkat(int dirfd, uint64 name, uint64 flags)
 {
 	//TODO: your job is to complete the syscall
-	return -1;
+	char path[DIRSIZ];
+	memset(path, 0, sizeof(path));
+	struct proc *p = curr_proc();
+	copyinstr(p->pagetable, path, name, DIRSIZ);
+	return unlinkat(dirfd, path, flags);
 }
 
 uint64 sys_sbrk(int n)
@@ -222,7 +254,6 @@ uint64 sys_sbrk(int n)
 	return addr;
 }
 
-// STEP1: upgrade mmap to not cause a panic with a leaf => add a resize_pages wrapper to change max_page
 void resize_pages(struct proc **p, uint64 mp) {
 	if (mp > (*p)->max_page) {
 		(*p)->max_page = mp;
@@ -233,7 +264,6 @@ void resize_pages(struct proc **p, uint64 mp) {
 // TODO: add support for mmap and munmap syscall.
 // hint: read through docstrings in vm.c. Watching CH4 video may also help.
 // Note the return value and PTE flags (especially U,X,W,R)
-// STEP1: upgrade mmap to not cause a panic with a leaf
 int mmap(void* start, unsigned long long len, int port, int flag, int fd) {
 	if (((uint64)start & (PAGE_SIZE- 1)) != 0) return -1;
 	if (len > (1 << 30)) return -1;
@@ -344,7 +374,7 @@ void syscall()
 		ret = sys_unlinkat(args[0], args[1], args[2]);
 		break;
 	case SYS_spawn:
-		ret = sys_spawn(args[0]);
+		ret = sys_spawn(args[0], args[1]);
 		break;
 	case SYS_sbrk:
 		ret = sys_sbrk(args[0]);

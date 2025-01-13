@@ -9,7 +9,6 @@ struct queue {
 	int front;
 	int tail;
 	int empty;
-	// STEP6: add a cmp function to compare the priority of two processes
 	int (*cmp)(int, int);
 };
 
