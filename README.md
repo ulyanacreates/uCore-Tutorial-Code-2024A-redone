@@ -17,7 +17,9 @@ Course project for THU-OS.
 ```bash
 # GitHub 使用 https
 git clone https://github.com/LearningOS/uCore-Tutorial-Test-2024A.git user
+git clone https://github.com/LearningOS/uCore-Tutorial-Test-2024A.git user
 # GitHub 使用 ssh
+git clone git@github.com:LearningOS/uCore-Tutorial-Test-2024A.git user
 git clone git@github.com:LearningOS/uCore-Tutorial-Test-2024A.git user
 ```
 

@@ -10,9 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
     - name: Mirror + trigger CI
       uses: tkf2019/gitlab-mirror-and-ci-action@master
+      uses: tkf2019/gitlab-mirror-and-ci-action@master
       with:
+        args: "https://git.tsinghua.edu.cn/os-lab/2024a/public/ucore-tutorial-code-2024a"
         args: "https://git.tsinghua.edu.cn/os-lab/2024a/public/ucore-tutorial-code-2024a"
       env:
         GITLAB_HOSTNAME: "git.tsinghua.edu.cn"

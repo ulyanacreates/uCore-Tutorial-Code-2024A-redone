@@ -2,6 +2,7 @@
 #include "defs.h"
 #include "file.h"
 #include "trap.h"
+#include "timer.h"
 
 extern char INIT_PROC[];
 

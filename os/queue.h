@@ -9,9 +9,11 @@ struct queue {
 	int front;
 	int tail;
 	int empty;
+	// STEP6: add a cmp function to compare the priority of two processes
+	int (*cmp)(int, int);
 };
 
-void init_queue(struct queue *);
+void init_queue(struct queue *, int (*cmp)(int, int));
 void push_queue(struct queue *, int);
 int pop_queue(struct queue *);
 
